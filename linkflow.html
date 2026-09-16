@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISMAIL SHAH — LINKFLOW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000000;
+    --fg:#ffffff;
+    --fg-70: rgba(255,255,255,.70);
+    --fg-50: rgba(255,255,255,.50);
+    --fg-30: rgba(255,255,255,.28);
+    --fg-15: rgba(255,255,255,.14);
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --gap: 18px;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--mono);
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- background texture ---------- */
+  .stars-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 68%, #fff, transparent),
+      radial-gradient(1px 1px at 48% 40%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 14%, #fff, transparent),
+      radial-gradient(1px 1px at 91% 58%, #fff, transparent),
+      radial-gradient(1px 1px at 30% 82%, #fff, transparent),
+      radial-gradient(1px 1px at 18% 58%, #fff, transparent),
+      radial-gradient(1px 1px at 72% 38%, #fff, transparent),
+      radial-gradient(1px 1px at 5% 90%, #fff, transparent),
+      radial-gradient(1px 1px at 95% 88%, #fff, transparent);
+    background-size: 200% 200%, 180% 180%, 250% 250%, 220% 220%, 190% 190%, 240% 240%, 210% 210%, 230% 230%, 260% 260%, 200% 200%;
+    animation: drift 90s linear infinite;
+  }
+  @keyframes drift{
+    0%{ background-position:0% 0%, 40% 40%, 60% 60%, 20% 20%, 80% 80%, 30% 30%, 70% 70%, 50% 50%, 10% 10%, 90% 90%; }
+    100%{ background-position:100% 100%, -40% -40%, -60% -60%, -20% -20%, -80% -80%, -30% -30%, -70% -70%, -50% -50%, -10% -10%, -90% -90%; }
+  }
+
+  .dither{
+    position:fixed; top:0; bottom:0; width:1px; opacity:.35; z-index:1; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0px, transparent 1px, #fff 1px, #fff 2px),
+      repeating-linear-gradient(90deg, transparent 0px, transparent 1px, #fff 1px, #fff 2px);
+    background-size:3px 3px;
+  }
+  .dither.left{ left:0; }
+  .dither.right{ right:0; }
+
+  /* corner frame — the single decorative flourish */
+  .corner{ position:fixed; width:44px; height:44px; z-index:5; pointer-events:none; opacity:.4; }
+  .corner.tl{ top:14px; left:14px; border-top:2px solid #fff; border-left:2px solid #fff; }
+  .corner.tr{ top:14px; right:14px; border-top:2px solid #fff; border-right:2px solid #fff; }
+  .corner.bl{ bottom:14px; left:14px; border-bottom:2px solid #fff; border-left:2px solid #fff; }
+  .corner.br{ bottom:14px; right:14px; border-bottom:2px solid #fff; border-right:2px solid #fff; }
+  @media (max-width:640px){ .corner{ display:none; } }
+
+  /* ---------- layout shell ---------- */
+  .shell{ position:relative; z-index:2; min-height:100vh; display:flex; flex-direction:column; }
+
+  header.topbar{
+    border-bottom:1px solid var(--fg-15);
+    padding:16px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand .wordmark{
+    font-style:italic; font-weight:700; letter-spacing:.06em;
+    font-size:22px; transform:skewX(-10deg); display:inline-block;
+  }
+  .brand .divider{ width:1px; height:16px; background:var(--fg-30); }
+  .brand .byline{ font-size:10px; letter-spacing:.16em; color:var(--fg-50); }
+
+  .stats{ display:flex; align-items:center; gap:10px; font-size:10px; letter-spacing:.12em; color:var(--fg-50); }
+  .stats .dot{ width:3px; height:3px; background:var(--fg-30); border-radius:50%; }
+
+  /* ---------- hero strip ---------- */
+  .hero{ padding:56px 28px 34px; max-width:1100px; margin:0 auto; width:100%; }
+  .hero .eyebrow{
+    display:flex; align-items:center; gap:8px; margin-bottom:14px; opacity:.6;
+  }
+  .hero .eyebrow .line{ width:32px; height:1px; background:#fff; }
+  .hero .eyebrow .line.grow{ flex:1; }
+  .hero .eyebrow span{ font-size:10px; letter-spacing:.2em; }
+  h1.title{
+    margin:0 0 10px; font-weight:700; letter-spacing:.03em; line-height:1.05;
+    font-size:clamp(28px, 5vw, 46px);
+  }
+  h1.title em{ font-style:italic; transform:skewX(-6deg); display:inline-block; }
+  .hero p.sub{
+    margin:0; color:var(--fg-70); font-size:13.5px; max-width:56ch; line-height:1.6;
+  }
+
+  .hero-actions{ display:flex; gap:12px; margin-top:22px; flex-wrap:wrap; }
+  button{ font-family:var(--mono); cursor:pointer; }
+
+  .btn{
+    background:transparent; color:#fff; border:1px solid #fff;
+    padding:10px 18px; font-size:12px; letter-spacing:.06em;
+    transition:background .15s ease, color .15s ease;
+  }
+  .btn:hover{ background:#fff; color:#000; }
+  .btn.ghost{ border-color:var(--fg-30); color:var(--fg-70); }
+  .btn.ghost:hover{ background:var(--fg-15); color:#fff; }
+  .btn:focus-visible, input:focus-visible, select:focus-visible, .link-row:focus-visible{
+    outline:2px solid #fff; outline-offset:2px;
+  }
+
+  /* ---------- sections grid ---------- */
+  main.content{ flex:1; padding:0 28px 60px; max-width:1100px; margin:0 auto; width:100%; }
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--gap);
+  }
+
+  .card{
+    border:1px solid var(--fg-30);
+    background:rgba(255,255,255,.015);
+    display:flex; flex-direction:column;
+    min-height:180px;
+  }
+  .card-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--fg-15);
+  }
+  .card-head h2{
+    margin:0; font-size:14px; letter-spacing:.08em; font-weight:700;
+  }
+  .card-head .count{ font-size:10px; color:var(--fg-50); letter-spacing:.1em; }
+  .card-head .head-right{ display:flex; align-items:center; gap:10px; }
+  .icon-btn{
+    background:none; border:none; color:var(--fg-50); font-size:14px; line-height:1;
+    padding:2px 4px;
+  }
+  .icon-btn:hover{ color:#fff; }
+
+  .links{ list-style:none; margin:0; padding:6px 0; flex:1; }
+  .link-row{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 16px; text-decoration:none; color:#fff;
+    border-bottom:1px dashed var(--fg-15);
+  }
+  .link-row:last-child{ border-bottom:none; }
+  .link-row:hover{ background:var(--fg-15); }
+  .link-row .glyph{ font-size:12px; opacity:.55; flex-shrink:0; }
+  .link-row .meta{ min-width:0; flex:1; }
+  .link-row .name{ font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .link-row .url{ font-size:10px; color:var(--fg-50); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .link-row .del{
+    background:none; border:none; color:var(--fg-50); font-size:14px; opacity:0; flex-shrink:0;
+    transition:opacity .1s ease;
+  }
+  .link-row:hover .del{ opacity:1; }
+  .link-row .del:hover{ color:#fff; }
+
+  .empty{ padding:20px 16px; font-size:11px; color:var(--fg-50); letter-spacing:.05em; }
+
+  .add-link-form{
+    display:flex; gap:6px; padding:12px; border-top:1px solid var(--fg-15);
+  }
+  .add-link-form input{
+    background:transparent; border:1px solid var(--fg-30); color:#fff;
+    font-family:var(--mono); font-size:11.5px; padding:8px 9px; min-width:0;
+  }
+  .add-link-form input::placeholder{ color:var(--fg-50); }
+  .add-link-form input.name{ flex:0 0 34%; }
+  .add-link-form input.url{ flex:1; }
+  .add-link-form button{
+    background:transparent; border:1px solid var(--fg-30); color:var(--fg-70);
+    font-size:14px; padding:0 12px; flex-shrink:0;
+  }
+  .add-link-form button:hover{ border-color:#fff; color:#fff; }
+
+  /* new section tile */
+  .new-card{
+    border:1px dashed var(--fg-30); display:flex; align-items:center; justify-content:center;
+    min-height:180px; color:var(--fg-50); font-size:12px; letter-spacing:.08em;
+    background:none;
+  }
+  .new-card:hover{ border-color:#fff; color:#fff; background:var(--fg-15); }
+
+  /* ---------- footer ---------- */
+  footer.status{
+    border-top:1px solid var(--fg-15); padding:12px 28px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    font-size:9.5px; letter-spacing:.1em; color:var(--fg-50);
+  }
+  .pulse{ display:flex; gap:4px; align-items:center; }
+  .pulse i{ width:4px; height:4px; border-radius:50%; background:var(--fg-30); animation:blink 1.4s infinite ease-in-out; }
+  .pulse i:nth-child(2){ animation-delay:.2s; }
+  .pulse i:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+
+  /* ---------- modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:#000; border:1px solid var(--fg-30); width:100%; max-width:360px; padding:22px;
+  }
+  .modal h3{ margin:0 0 16px; font-size:13px; letter-spacing:.1em; }
+  .modal label{ display:block; font-size:10px; letter-spacing:.1em; color:var(--fg-50); margin-bottom:6px; }
+  .modal input{
+    width:100%; background:transparent; border:1px solid var(--fg-30); color:#fff;
+    font-family:var(--mono); font-size:13px; padding:10px; margin-bottom:16px;
+  }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; }
+
+  @media (max-width:640px){
+    header.topbar{ padding:14px 16px; }
+    .hero{ padding:36px 16px 22px; }
+    main.content{ padding:0 16px 40px; }
+    footer.status{ padding:10px 16px; }
+    .add-link-form{ flex-wrap:wrap; }
+    .add-link-form input.name{ flex:1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars-bg"></div>
+<div class="dither left"></div>
+<div class="dither right"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="wordmark">LINKFLOW</span>
+      <span class="divider"></span>
+      <span class="byline">ISMAIL SHAH</span>
+    </div>
+    <div class="stats">
+      <span id="stat-sections">0 SECTIONS</span>
+      <span class="dot"></span>
+      <span id="stat-links">0 LINKS</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">
+      <span class="line"></span>
+      <span>PERSONAL ARCHIVE</span>
+      <span class="line grow"></span>
+    </div>
+    <h1 class="title">Every link you need, <em>sorted and within reach.</em></h1>
+    <p class="sub">Study material, dev tools, projects and the fun stuff — organised into sections instead of buried in fifty browser tabs. Saved right in this browser.</p>
+    <div class="hero-actions">
+      <button class="btn" id="btn-add-section">+ NEW SECTION</button>
+    </div>
+  </section>
+
+  <main class="content">
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer class="status">
+    <div>LINKFLOW · V1.0.0 · LOCAL STORAGE</div>
+    <div class="pulse">
+      <span>SAVED</span>
+      <i></i><i></i><i></i>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Add section modal -->
+<div class="overlay" id="overlay-section">
+  <div class="modal">
+    <h3>NEW SECTION</h3>
+    <label for="input-section-name">Section name</label>
+    <input id="input-section-name" type="text" placeholder="e.g. Study, Design, Fun" maxlength="30" />
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancel-section">Cancel</button>
+      <button class="btn" id="confirm-section">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'linkflow_data_v1';
+  var uid = function(){ return Math.random().toString(36).slice(2,10); };
+
+  var defaultState = {
+    categories: [
+      { id: uid(), name: 'Study', links: [
+        { id: uid(), name: 'Khan Academy', url: 'https://www.khanacademy.org' },
+        { id: uid(), name: 'Wikipedia', url: 'https://www.wikipedia.org' }
+      ]},
+      { id: uid(), name: 'Development', links: [
+        { id: uid(), name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
+        { id: uid(), name: 'GitHub', url: 'https://github.com' },
+        { id: uid(), name: 'Stack Overflow', url: 'https://stackoverflow.com' }
+      ]},
+      { id: uid(), name: 'Fun', links: [
+        { id: uid(), name: 'YouTube', url: 'https://www.youtube.com' }
+      ]}
+    ]
+  };
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return JSON.parse(JSON.stringify(defaultState));
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.categories)) return JSON.parse(JSON.stringify(defaultState));
+      return parsed;
+    }catch(e){
+      console.error('LinkFlow: failed to load storage', e);
+      return JSON.parse(JSON.stringify(defaultState));
+    }
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){
+      console.error('LinkFlow: failed to save storage', e);
+    }
+  }
+
+  var state = loadState();
+
+  function normalizeUrl(u){
+    u = (u || '').trim();
+    if(!u) return '';
+    if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    return u;
+  }
+
+  function hostOf(u){
+    try{ return new URL(u).hostname.replace(/^www\./,''); }
+    catch(e){ return u; }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function render(){
+    var grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    var totalLinks = 0;
+
+    state.categories.forEach(function(cat){
+      totalLinks += cat.links.length;
+
+      var card = document.createElement('div');
+      card.className = 'card';
+
+      var head = document.createElement('div');
+      head.className = 'card-head';
+      head.innerHTML =
+        '<h2>' + escapeHtml(cat.name) + '</h2>' +
+        '<div class="head-right">' +
+          '<span class="count">' + cat.links.length + '</span>' +
+          '<button class="icon-btn" data-del-cat="' + cat.id + '" title="Delete section" aria-label="Delete section">✕</button>' +
+        '</div>';
+      card.appendChild(head);
+
+      var list = document.createElement('ul');
+      list.className = 'links';
+      if(cat.links.length === 0){
+        var empty = document.createElement('li');
+        empty.className = 'empty';
+        empty.textContent = 'NO LINKS YET — ADD YOUR FIRST ONE BELOW';
+        list.appendChild(empty);
+      } else {
+        cat.links.forEach(function(link){
+          var li = document.createElement('li');
+          var a = document.createElement('a');
+          a.className = 'link-row';
+          a.href = link.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.innerHTML =
+            '<span class="glyph">↗</span>' +
+            '<span class="meta">' +
+              '<div class="name">' + escapeHtml(link.name) + '</div>' +
+              '<div class="url">' + escapeHtml(hostOf(link.url)) + '</div>' +
+            '</span>' +
+            '<button class="del" data-del-link="' + link.id + '" data-cat="' + cat.id + '" title="Remove link" aria-label="Remove link">✕</button>';
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+      }
+      card.appendChild(list);
+
+      var form = document.createElement('div');
+      form.className = 'add-link-form';
+      form.innerHTML =
+        '<input class="name" type="text" placeholder="Name" maxlength="40" />' +
+        '<input class="url" type="text" placeholder="URL (e.g. example.com)" maxlength="200" />' +
+        '<button title="Add link" aria-label="Add link">+</button>';
+      card.appendChild(form);
+
+      grid.appendChild(card);
+
+      var nameInput = form.querySelector('.name');
+      var urlInput = form.querySelector('.url');
+      var addBtn = form.querySelector('button');
+
+      function submitLink(){
+        var name = nameInput.value.trim();
+        var url = normalizeUrl(urlInput.value);
+        if(!name || !url) return;
+        cat.links.push({ id: uid(), name: name, url: url });
+        saveState();
+        render();
+      }
+      addBtn.addEventListener('click', submitLink);
+      [nameInput, urlInput].forEach(function(inp){
+        inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLink(); });
+      });
+    });
+
+    // "new section" tile at the end
+    var newCard = document.createElement('button');
+    newCard.className = 'new-card';
+    newCard.textContent = '+ ADD SECTION';
+    newCard.addEventListener('click', openSectionModal);
+    grid.appendChild(newCard);
+
+    // delete handlers
+    grid.querySelectorAll('[data-del-cat]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-del-cat');
+        var cat = state.categories.find(function(c){ return c.id === id; });
+        var label = cat ? cat.name : 'this section';
+        if(confirm('Delete "' + label + '" and all its links?')){
+          state.categories = state.categories.filter(function(c){ return c.id !== id; });
+          saveState();
+          render();
+        }
+      });
+    });
+    grid.querySelectorAll('[data-del-link]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        var linkId = btn.getAttribute('data-del-link');
+        var catId = btn.getAttribute('data-cat');
+        var cat = state.categories.find(function(c){ return c.id === catId; });
+        if(cat){
+          cat.links = cat.links.filter(function(l){ return l.id !== linkId; });
+          saveState();
+          render();
+        }
+      });
+    });
+
+    document.getElementById('stat-sections').textContent = state.categories.length + (state.categories.length === 1 ? ' SECTION' : ' SECTIONS');
+    document.getElementById('stat-links').textContent = totalLinks + (totalLinks === 1 ? ' LINK' : ' LINKS');
+  }
+
+  // ---- add-section modal ----
+  var overlay = document.getElementById('overlay-section');
+  var sectionInput = document.getElementById('input-section-name');
+
+  function openSectionModal(){
+    overlay.classList.add('show');
+    sectionInput.value = '';
+    setTimeout(function(){ sectionInput.focus(); }, 30);
+  }
+  function closeSectionModal(){ overlay.classList.remove('show'); }
+
+  function confirmSection(){
+    var name = sectionInput.value.trim();
+    if(!name) return;
+    state.categories.push({ id: uid(), name: name, links: [] });
+    saveState();
+    closeSectionModal();
+    render();
+  }
+
+  document.getElementById('btn-add-section').addEventListener('click', openSectionModal);
+  document.getElementById('cancel-section').addEventListener('click', closeSectionModal);
+  document.getElementById('confirm-section').addEventListener('click', confirmSection);
+  sectionInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') confirmSection(); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeSectionModal(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSectionModal(); });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
