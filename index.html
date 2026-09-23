@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ISMAILBUILDS — LINKFLOW</title>
@@ -255,20 +256,23 @@
 </head>
 <body>
 <!-- Secure Auth Overlay -->
-<div id="auth-overlay" style="position: fixed; inset: 0; background: #0d0d0d; z-index: 9999; display: flex; align-items: center; justify-content: center; font-family: monospace; color: white;">
+<div id="auth-overlay" style="position: fixed; inset: 0; background: #0d0d0d; z-index: 99999; display: flex; align-items: center; justify-content: center; font-family: monospace; color: white;">
+  <div style="background: #121212; border: 1px solid #333; padding: 32px; width: 90%; max-width: 380px; text-align: center; border-radius: 4px;">
+    <h3 id="auth-title" style="margin-top: 0; letter-spacing: 2px; font-size: 16px;">LINKFLOW_LOCKED</h3>
+    <p id="auth-subtitle" style="color: #888; font-size: 13px; margin: 12px 0 20px;">Enter your master password.</p>
     
-    <div style="background: #111; border: 1px solid #333; padding: 40px; width: 100%; max-width: 400px; text-align: center;">
-        <h2 id="auth-title" style="margin-top: 0; letter-spacing: 2px;">LINKFLOW_LOCKED</h2>
-        <p id="auth-subtitle" style="color: #888; font-size: 14px; margin-bottom: 25px;">Enter your master password.</p>
-        
-        <input type="password" id="auth-input" placeholder="••••••••" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 15px; text-align: center; font-size: 16px;">
-        
-        <button id="auth-btn" style="width: 100%; padding: 12px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 14px; transition: 0.2s;">UNLOCK</button>
-        
-        <p id="auth-error" style="color: #ff5555; display: none; margin-top: 15px; font-size: 12px;"></p>
-        
-        <button id="auth-toggle-btn" style="background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; margin-top: 20px; font-family: monospace; font-size: 12px;">Forgot Password?</button>
+    <div id="auth-input-container">
+      <input type="password" id="auth-input" placeholder="••••••••" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 15px;">
     </div>
+    
+    <button id="auth-btn" style="width: 100%; padding: 12px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 13px;">UNLOCK</button>
+    
+    <p id="auth-error" style="color: #ff5555; display: none; margin: 12px 0 0; font-size: 12px;"></p>
+    
+    <div style="margin-top: 16px;">
+      <button id="auth-toggle-btn" type="button" style="background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-family: monospace; font-size: 11px;">Forgot Password?</button>
+    </div>
+  </div>
 </div>
 
 <div class="stars-bg"></div>
@@ -344,391 +348,364 @@
 </div>
 
 <script>
-  let sessionPassword = "";
+// --- 1. SECURITY & AUTHENTICATION VARIABLES ---
+let sessionPassword = "";
+let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
+let state = { categories: [] };
+let searchQuery = '';
 
 const authOverlay = document.getElementById('auth-overlay');
 const authTitle = document.getElementById('auth-title');
 const authSubtitle = document.getElementById('auth-subtitle');
 const authInput = document.getElementById('auth-input');
+const authInputContainer = document.getElementById('auth-input-container');
 const authBtn = document.getElementById('auth-btn');
 const authError = document.getElementById('auth-error');
 const authToggleBtn = document.getElementById('auth-toggle-btn');
 
-let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
-let sessionPassword = "";
+// --- 2. ENCRYPTED STORAGE HELPERS ---
+function loadEncryptedState() {
+  if (!sessionPassword) return { categories: [] };
+  try {
+    const encrypted = localStorage.getItem('linkflow_secure');
+    if (!encrypted) return { categories: [] };
+    const bytes = CryptoJS.AES.decrypt(encrypted, sessionPassword);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    const parsed = JSON.parse(decrypted);
+    return (parsed && Array.isArray(parsed.categories)) ? parsed : { categories: [] };
+  } catch (err) {
+    console.error('Decryption failed', err);
+    return { categories: [] };
+  }
+}
 
-function renderAuthUI() {
-    authInput.value = '';
-    authError.style.display = 'none';
+function saveEncryptedState() {
+  if (!sessionPassword) return;
+  try {
+    const encrypted = CryptoJS.AES.encrypt(JSON.stringify(state), sessionPassword).toString();
+    localStorage.setItem('linkflow_secure', encrypted);
+  } catch (err) {
+    console.error('Encryption failed', err);
+  }
+}
+
+// --- 3. AUTHENTICATION LOGIC ---
+function updateAuthView() {
+  authError.style.display = 'none';
+  authInput.value = '';
+  authInputContainer.style.display = 'block';
+
+  if (currentMode === 'setup') {
+    authTitle.innerText = 'INITIAL_SETUP';
+    authSubtitle.innerText = 'Create a master password for LinkFlow.';
+    authInput.type = 'password';
+    authInput.placeholder = 'Create Master Password';
+    authBtn.innerText = 'SET PASSWORD';
+    authToggleBtn.style.display = 'none';
+  } else if (currentMode === 'login') {
+    authTitle.innerText = 'LINKFLOW_LOCKED';
+    authSubtitle.innerText = 'Enter your master password.';
+    authInput.type = 'password';
+    authInput.placeholder = '••••••••';
+    authBtn.innerText = 'UNLOCK';
+    authToggleBtn.style.display = 'inline-block';
+    authToggleBtn.innerText = 'Forgot Password?';
+  } else if (currentMode === 'recovery') {
+    authTitle.innerText = 'EMERGENCY_RECOVERY';
+    authSubtitle.innerText = 'Enter your 12-digit recovery phrase.';
+    authInput.type = 'text';
+    authInput.placeholder = 'XXXX-XXXX-XXXX';
+    authBtn.innerText = 'RECOVER PASSWORD';
+    authToggleBtn.style.display = 'inline-block';
+    authToggleBtn.innerText = 'Back to Login';
+  }
+}
+
+function handleAuthSubmit() {
+  const val = authInput.value.trim();
+
+  if (currentMode === 'setup_complete') {
+    authOverlay.style.display = 'none';
+    startApp();
+    return;
+  }
+
+  if (!val) {
+    showError("Input cannot be empty.");
+    return;
+  }
+
+  if (currentMode === 'setup') {
+    const phrase = Array.from({ length: 3 }, () => Math.random().toString(36).substring(2, 6).toUpperCase()).join('-');
+    const vault = CryptoJS.AES.encrypt(val, phrase).toString();
+    localStorage.setItem('linkflow_vault', vault);
+    const token = CryptoJS.AES.encrypt('auth-ok', val).toString();
+    localStorage.setItem('linkflow_token', token);
+
+    sessionPassword = val;
+    if (!localStorage.getItem('linkflow_secure')) {
+      saveEncryptedState();
+    }
+
+    currentMode = 'setup_complete';
+    authTitle.innerText = 'SAVE_RECOVERY_KEY';
+    authSubtitle.innerHTML = `<span style="color: #22c55e; font-size: 15px; font-weight: bold;">${phrase}</span><br><br><span style="color:#aaa;">Write this key down. It is the ONLY way to recover your data.</span>`;
+    authInputContainer.style.display = 'none';
+    authBtn.innerText = 'I HAVE SAVED IT, OPEN APP';
     
-    if (currentMode === 'setup') {
-        authTitle.innerText = 'INITIAL_SETUP';
-        authSubtitle.innerText = 'Create a secure master password.';
-        authBtn.innerText = 'SET PASSWORD';
-        authInput.placeholder = 'New Password';
-        authToggleBtn.style.display = 'none';
-    } else if (currentMode === 'login') {
-        authTitle.innerText = 'LINKFLOW_LOCKED';
-        authSubtitle.innerText = 'Enter your master password.';
-        authBtn.innerText = 'UNLOCK';
-        authInput.placeholder = '••••••••';
-        authToggleBtn.innerText = 'Forgot Password?';
-        authToggleBtn.style.display = 'inline-block';
-    } else if (currentMode === 'recovery') {
-        authTitle.innerText = 'EMERGENCY_RECOVERY';
-        authSubtitle.innerText = 'Enter your 12-character recovery phrase.';
-        authBtn.innerText = 'RECOVER PASSWORD';
-        authInput.placeholder = 'XXXX-XXXX-XXXX';
-        authToggleBtn.innerText = 'Back to Login';
-    }
-}
-
-function generateRecoveryPhrase() {
-    return Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + 
-           Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + 
-           Math.random().toString(36).substring(2, 6).toUpperCase();
-}
-
-authBtn.addEventListener('click', () => {
-    const inputVal = authInput.value;
-    if (!inputVal) return;
-
-    if (currentMode === 'setup') {
-        // 1. Setup Mode
-        const recoveryPhrase = generateRecoveryPhrase();
-        
-        // Encrypt the password using the recovery phrase for emergencies
-        const vault = CryptoJS.AES.encrypt(inputVal, recoveryPhrase).toString();
-        localStorage.setItem('linkflow_vault', vault);
-        
-        // Save an encrypted verification check
-        const authCheck = CryptoJS.AES.encrypt('auth-ok', inputVal).toString();
-        localStorage.setItem('linkflow_auth_check', authCheck);
-        
-        // Initialize empty secure data
-        sessionPassword = inputVal;
-        localStorage.setItem('linkflow_secure', CryptoJS.AES.encrypt('[]', sessionPassword).toString());
-        
-        // Show recovery phrase
-        authTitle.innerText = 'SAVE_THIS_PHRASE';
-        authSubtitle.innerHTML = `<span style="color: #A7F3D0; font-size: 16px;">${recoveryPhrase}</span><br><br>Write this down. It is the ONLY way to recover your password.`;
-        authInput.style.display = 'none';
-        authBtn.innerText = 'I HAVE SAVED IT, ENTER APP';
-        authBtn.onclick = () => { authOverlay.style.display = 'none'; };
-        
-    } else if (currentMode === 'login') {
-        // 2. Login Mode
-        try {
-            const check = localStorage.getItem('linkflow_auth_check');
-            const decrypted = CryptoJS.AES.decrypt(check, inputVal).toString(CryptoJS.enc.Utf8);
-            
-            if (decrypted === 'auth-ok') {
-                sessionPassword = inputVal;
-                authOverlay.style.display = 'none';
-                // Call your function to render links here: renderLinks();
-            } else {
-                throw new Error();
-            }
-        } catch {
-            authError.innerText = 'Incorrect password.';
-            authError.style.display = 'block';
-        }
-    } else if (currentMode === 'recovery') {
-        // 3. Recovery Mode
-        try {
-            const vault = localStorage.getItem('linkflow_vault');
-            const decryptedPass = CryptoJS.AES.decrypt(vault, inputVal).toString(CryptoJS.enc.Utf8);
-            
-            if (decryptedPass) {
-                authTitle.innerText = 'PASSWORD_RECOVERED';
-                authSubtitle.innerHTML = `Your master password is:<br><br><span style="color: white; font-size: 18px;">${decryptedPass}</span>`;
-                authInput.style.display = 'none';
-                authBtn.innerText = 'BACK TO LOGIN';
-                authBtn.onclick = () => { location.reload(); };
-            } else {
-                throw new Error();
-            }
-        } catch {
-            authError.innerText = 'Invalid recovery phrase.';
-            authError.style.display = 'block';
-        }
-    }
-});
-
-authToggleBtn.addEventListener('click', () => {
-    currentMode = currentMode === 'login' ? 'recovery' : 'login';
-    renderAuthUI();
-});
-
-// Replace old load/save functions
-function saveData(dataArray) {
-    if (!sessionPassword) return;
-    localStorage.setItem('linkflow_secure', CryptoJS.AES.encrypt(JSON.stringify(dataArray), sessionPassword).toString());
-}
-
-function loadData() {
-    if (!sessionPassword) return [];
+  } else if (currentMode === 'login') {
     try {
-        const encrypted = localStorage.getItem('linkflow_secure');
-        return JSON.parse(CryptoJS.AES.decrypt(encrypted, sessionPassword).toString(CryptoJS.enc.Utf8));
-    } catch { return []; }
+      const storedToken = localStorage.getItem('linkflow_token');
+      if (!storedToken) throw new Error("No token");
+      const bytes = CryptoJS.AES.decrypt(storedToken, val);
+      if (bytes.toString(CryptoJS.enc.Utf8) === 'auth-ok') {
+        sessionPassword = val;
+        authOverlay.style.display = 'none';
+        startApp();
+      } else throw new Error();
+    } catch {
+      showError("Incorrect password.");
+    }
+  } else if (currentMode === 'recovery') {
+    try {
+      const vault = localStorage.getItem('linkflow_vault');
+      const recoveredPass = CryptoJS.AES.decrypt(vault, val).toString(CryptoJS.enc.Utf8);
+      if (recoveredPass) {
+        authTitle.innerText = 'PASSWORD_RECOVERED';
+        authSubtitle.innerHTML = `Your master password is:<br><br><strong style="color: #fff; font-size: 16px;">${recoveredPass}</strong>`;
+        authInputContainer.style.display = 'none';
+        authBtn.innerText = 'LOGIN NOW';
+        authToggleBtn.style.display = 'none';
+        authBtn.onclick = () => location.reload();
+      } else throw new Error();
+    } catch {
+      showError("Invalid recovery key.");
+    }
+  }
 }
 
-renderAuthUI();
-(function(){
-  var STORAGE_KEY = 'linkflow_data_v1';
-  var uid = function(){ return Math.random().toString(36).slice(2,10); };
+function showError(msg) {
+  authError.innerText = msg;
+  authError.style.display = 'block';
+}
 
-  var defaultState = {
-    categories: [
-      { id: uid(), name: 'Development', links: [
-        { id: uid(), name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
-        { id: uid(), name: 'GitHub', url: 'https://github.com' }
-      ]}
-    ]
-  };
+authBtn.addEventListener('click', handleAuthSubmit);
+authInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
+authToggleBtn.addEventListener('click', () => {
+  currentMode = (currentMode === 'login') ? 'recovery' : 'login';
+  updateAuthView();
+});
 
-  function loadState(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return JSON.parse(JSON.stringify(defaultState));
-      var parsed = JSON.parse(raw);
-      if(!parsed || !Array.isArray(parsed.categories)) return JSON.parse(JSON.stringify(defaultState));
-      return parsed;
-    }catch(e){
-      console.error('LinkFlow: failed to load storage', e);
-      return JSON.parse(JSON.stringify(defaultState));
-    }
-  }
+// --- 4. MAIN APP LOGIC (ONLY RUNS AFTER UNLOCK) ---
+var uid = function(){ return Math.random().toString(36).slice(2,10); };
+function normalizeUrl(u){
+  u = (u || '').trim();
+  if(!u) return '';
+  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return u;
+}
+function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./,''); } catch(e){ return u; } }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+}
 
-  function saveState(){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }catch(e){
-      console.error('LinkFlow: failed to save storage', e);
-    }
-  }
+function render(){
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  var totalLinks = 0;
 
-  var state = loadState();
-  var searchQuery = '';
-
-  function normalizeUrl(u){
-    u = (u || '').trim();
-    if(!u) return '';
-    if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
-    return u;
-  }
-
-  function hostOf(u){
-    try{ return new URL(u).hostname.replace(/^www\./,''); }
-    catch(e){ return u; }
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  state.categories.forEach(function(cat){
+    var filteredLinks = cat.links.filter(function(link) {
+      if (!searchQuery) return true;
+      return link.name.toLowerCase().includes(searchQuery) || link.url.toLowerCase().includes(searchQuery);
     });
-  }
 
-  function render(){
-    var grid = document.getElementById('grid');
-    grid.innerHTML = '';
-    var totalLinks = 0;
+    if (searchQuery && filteredLinks.length === 0 && !cat.name.toLowerCase().includes(searchQuery)) return;
+    totalLinks += cat.links.length;
 
-    state.categories.forEach(function(cat){
-      // Filter links based on search query
-      var filteredLinks = cat.links.filter(function(link) {
-        if (!searchQuery) return true;
-        return link.name.toLowerCase().includes(searchQuery) || link.url.toLowerCase().includes(searchQuery);
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var head = document.createElement('div');
+    head.className = 'card-head';
+    head.innerHTML =
+      '<h2>' + escapeHtml(cat.name) + '</h2>' +
+      '<div class="head-right">' +
+        '<span class="count">' + filteredLinks.length + '</span>' +
+        '<button class="icon-btn" data-del-cat="' + cat.id + '" title="Delete section">✕</button>' +
+      '</div>';
+    card.appendChild(head);
+
+    var list = document.createElement('ul');
+    list.className = 'links';
+    
+    if(filteredLinks.length === 0){
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = searchQuery ? 'NO MATCHING LINKS' : 'NO LINKS YET — ADD YOUR FIRST ONE BELOW';
+      list.appendChild(empty);
+    } else {
+      filteredLinks.forEach(function(link){
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.className = 'link-row';
+        a.href = link.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.innerHTML =
+          '<span class="glyph">↗</span>' +
+          '<span class="meta">' +
+            '<div class="name">' + escapeHtml(link.name) + '</div>' +
+            '<div class="url">' + escapeHtml(hostOf(link.url)) + '</div>' +
+          '</span>' +
+          '<button class="del" data-del-link="' + link.id + '" data-cat="' + cat.id + '" title="Remove link">✕</button>';
+        li.appendChild(a);
+        list.appendChild(li);
       });
-
-      // Skip category if searching and no links match
-      if (searchQuery && filteredLinks.length === 0 && !cat.name.toLowerCase().includes(searchQuery)) return;
-
-      totalLinks += cat.links.length;
-
-      var card = document.createElement('div');
-      card.className = 'card';
-
-      var head = document.createElement('div');
-      head.className = 'card-head';
-      head.innerHTML =
-        '<h2>' + escapeHtml(cat.name) + '</h2>' +
-        '<div class="head-right">' +
-          '<span class="count">' + filteredLinks.length + '</span>' +
-          '<button class="icon-btn" data-del-cat="' + cat.id + '" title="Delete section">✕</button>' +
-        '</div>';
-      card.appendChild(head);
-
-      var list = document.createElement('ul');
-      list.className = 'links';
-      
-      if(filteredLinks.length === 0){
-        var empty = document.createElement('li');
-        empty.className = 'empty';
-        empty.textContent = searchQuery ? 'NO MATCHING LINKS' : 'NO LINKS YET — ADD YOUR FIRST ONE BELOW';
-        list.appendChild(empty);
-      } else {
-        filteredLinks.forEach(function(link){
-          var li = document.createElement('li');
-          var a = document.createElement('a');
-          a.className = 'link-row';
-          a.href = link.url;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.innerHTML =
-            '<span class="glyph">↗</span>' +
-            '<span class="meta">' +
-              '<div class="name">' + escapeHtml(link.name) + '</div>' +
-              '<div class="url">' + escapeHtml(hostOf(link.url)) + '</div>' +
-            '</span>' +
-            '<button class="del" data-del-link="' + link.id + '" data-cat="' + cat.id + '" title="Remove link">✕</button>';
-          li.appendChild(a);
-          list.appendChild(li);
-        });
-      }
-      card.appendChild(list);
-
-      // Only show add form if not actively searching
-      if (!searchQuery) {
-        var form = document.createElement('div');
-        form.className = 'add-link-form';
-        form.innerHTML =
-          '<input class="name" type="text" placeholder="Name" maxlength="40" />' +
-          '<input class="url" type="text" placeholder="URL (e.g. example.com)" maxlength="200" />' +
-          '<button title="Add link">+</button>';
-        card.appendChild(form);
-
-        var nameInput = form.querySelector('.name');
-        var urlInput = form.querySelector('.url');
-        var addBtn = form.querySelector('button');
-
-        function submitLink(){
-          var name = nameInput.value.trim();
-          var url = normalizeUrl(urlInput.value);
-          if(!name || !url) return;
-          cat.links.push({ id: uid(), name: name, url: url });
-          saveState();
-          render();
-        }
-        addBtn.addEventListener('click', submitLink);
-        [nameInput, urlInput].forEach(function(inp){
-          inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLink(); });
-        });
-      }
-      grid.appendChild(card);
-    });
+    }
+    card.appendChild(list);
 
     if (!searchQuery) {
-      var newCard = document.createElement('button');
-      newCard.className = 'new-card';
-      newCard.textContent = '+ ADD SECTION';
-      newCard.addEventListener('click', openSectionModal);
-      grid.appendChild(newCard);
+      var form = document.createElement('div');
+      form.className = 'add-link-form';
+      form.innerHTML =
+        '<input class="name" type="text" placeholder="Name" maxlength="40" />' +
+        '<input class="url" type="text" placeholder="URL (e.g. example.com)" maxlength="200" />' +
+        '<button title="Add link">+</button>';
+      card.appendChild(form);
+
+      var nameInput = form.querySelector('.name');
+      var urlInput = form.querySelector('.url');
+      var addBtn = form.querySelector('button');
+
+      function submitLink(){
+        var name = nameInput.value.trim();
+        var url = normalizeUrl(urlInput.value);
+        if(!name || !url) return;
+        cat.links.push({ id: uid(), name: name, url: url });
+        saveEncryptedState();
+        render();
+      }
+      addBtn.addEventListener('click', submitLink);
+      [nameInput, urlInput].forEach(function(inp){
+        inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') submitLink(); });
+      });
     }
+    grid.appendChild(card);
+  });
 
-    grid.querySelectorAll('[data-del-cat]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var id = btn.getAttribute('data-del-cat');
-        var cat = state.categories.find(function(c){ return c.id === id; });
-        if(confirm('Delete "' + (cat ? cat.name : 'this section') + '" and all its links?')){
-          state.categories = state.categories.filter(function(c){ return c.id !== id; });
-          saveState(); render();
-        }
-      });
+  if (!searchQuery) {
+    var newCard = document.createElement('button');
+    newCard.className = 'new-card';
+    newCard.textContent = '+ ADD SECTION';
+    newCard.addEventListener('click', openSectionModal);
+    grid.appendChild(newCard);
+  }
+
+  grid.querySelectorAll('[data-del-cat]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-del-cat');
+      var cat = state.categories.find(function(c){ return c.id === id; });
+      if(confirm('Delete "' + (cat ? cat.name : 'this section') + '" and all its links?')){
+        state.categories = state.categories.filter(function(c){ return c.id !== id; });
+        saveEncryptedState(); render();
+      }
     });
+  });
 
-    grid.querySelectorAll('[data-del-link]').forEach(function(btn){
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        var linkId = btn.getAttribute('data-del-link');
-        var catId = btn.getAttribute('data-cat');
-        var cat = state.categories.find(function(c){ return c.id === catId; });
-        if(cat){
-          cat.links = cat.links.filter(function(l){ return l.id !== linkId; });
-          saveState(); render();
-        }
-      });
+  grid.querySelectorAll('[data-del-link]').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      var linkId = btn.getAttribute('data-del-link');
+      var catId = btn.getAttribute('data-cat');
+      var cat = state.categories.find(function(c){ return c.id === catId; });
+      if(cat){
+        cat.links = cat.links.filter(function(l){ return l.id !== linkId; });
+        saveEncryptedState(); render();
+      }
     });
-
-    document.getElementById('stat-sections').textContent = state.categories.length + (state.categories.length === 1 ? ' SECTION' : ' SECTIONS');
-    document.getElementById('stat-links').textContent = totalLinks + (totalLinks === 1 ? ' LINK' : ' LINKS');
-  }
-
-  /* ---- Search Logic ---- */
-  document.getElementById('search-input').addEventListener('input', function(e){
-    searchQuery = e.target.value.toLowerCase().trim();
-    render();
   });
 
-  /* ---- Export/Import Logic ---- */
-  document.getElementById('btn-export').addEventListener('click', function(){
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
-    var downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "linkflow_backup.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  });
+  document.getElementById('stat-sections').textContent = state.categories.length + (state.categories.length === 1 ? ' SECTION' : ' SECTIONS');
+  document.getElementById('stat-links').textContent = totalLinks + (totalLinks === 1 ? ' LINK' : ' LINKS');
+}
 
-  document.getElementById('file-import').addEventListener('change', function(e){
-    var file = e.target.files[0];
-    if(!file) return;
-    var reader = new FileReader();
-    reader.onload = function(event) {
-      try {
-        var imported = JSON.parse(event.target.result);
-        if(imported && Array.isArray(imported.categories)) {
-          state = imported;
-          saveState();
-          render();
-          alert("Backup successfully restored!");
-        } else { alert("Invalid JSON format."); }
-      } catch(err) { alert("Error reading file."); }
-      e.target.value = ''; // reset input
-    };
-    reader.readAsText(file);
-  });
-
-  /* ---- Theme Toggle ---- */
-  document.getElementById('btn-theme').addEventListener('click', function(){
-    document.body.classList.toggle('theme-light');
-    var isLight = document.body.classList.contains('theme-light');
-    localStorage.setItem('linkflow_theme', isLight ? 'light' : 'dark');
-  });
-
-  if(localStorage.getItem('linkflow_theme') === 'light'){
-    document.body.classList.add('theme-light');
-  }
-
-  /* ---- Modal Logic ---- */
-  var overlay = document.getElementById('overlay-section');
-  var sectionInput = document.getElementById('input-section-name');
-
-  function openSectionModal(){
-    overlay.classList.add('show');
-    sectionInput.value = '';
-    setTimeout(function(){ sectionInput.focus(); }, 30);
-  }
-  function closeSectionModal(){ overlay.classList.remove('show'); }
-
-  function confirmSection(){
-    var name = sectionInput.value.trim();
-    if(!name) return;
-    state.categories.push({ id: uid(), name: name, links: [] });
-    saveState(); closeSectionModal(); render();
-  }
-
-  document.getElementById('btn-add-section').addEventListener('click', openSectionModal);
-  document.getElementById('cancel-section').addEventListener('click', closeSectionModal);
-  document.getElementById('confirm-section').addEventListener('click', confirmSection);
-  sectionInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') confirmSection(); });
-  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeSectionModal(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSectionModal(); });
-
+document.getElementById('search-input').addEventListener('input', function(e){
+  searchQuery = e.target.value.toLowerCase().trim();
   render();
-})();
+});
+
+document.getElementById('btn-export').addEventListener('click', function(){
+  // Exports unencrypted JSON so you can safely move it to other devices
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+  var downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", "linkflow_backup.json");
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+});
+
+document.getElementById('file-import').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      var imported = JSON.parse(event.target.result);
+      if(imported && Array.isArray(imported.categories)) {
+        state = imported;
+        saveEncryptedState();
+        render();
+        alert("Backup successfully restored and encrypted!");
+      } else { alert("Invalid JSON format."); }
+    } catch(err) { alert("Error reading file."); }
+    e.target.value = ''; 
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btn-theme').addEventListener('click', function(){
+  document.body.classList.toggle('theme-light');
+  var isLight = document.body.classList.contains('theme-light');
+  localStorage.setItem('linkflow_theme', isLight ? 'light' : 'dark');
+});
+
+if(localStorage.getItem('linkflow_theme') === 'light'){
+  document.body.classList.add('theme-light');
+}
+
+var overlay = document.getElementById('overlay-section');
+var sectionInput = document.getElementById('input-section-name');
+
+function openSectionModal(){
+  overlay.classList.add('show');
+  sectionInput.value = '';
+  setTimeout(function(){ sectionInput.focus(); }, 30);
+}
+function closeSectionModal(){ overlay.classList.remove('show'); }
+function confirmSection(){
+  var name = sectionInput.value.trim();
+  if(!name) return;
+  state.categories.push({ id: uid(), name: name, links: [] });
+  saveEncryptedState(); closeSectionModal(); render();
+}
+
+document.getElementById('btn-add-section').addEventListener('click', openSectionModal);
+document.getElementById('cancel-section').addEventListener('click', closeSectionModal);
+document.getElementById('confirm-section').addEventListener('click', confirmSection);
+sectionInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') confirmSection(); });
+overlay.addEventListener('click', function(e){ if(e.target === overlay) closeSectionModal(); });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSectionModal(); });
+
+// --- 5. INITIALIZE ---
+function startApp() {
+  state = loadEncryptedState();
+  render();
+}
+
+// Boot up the Auth UI first
+updateAuthView();
 </script>
 
 </body>
