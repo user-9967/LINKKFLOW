@@ -254,12 +254,21 @@
 </style>
 </head>
 <body>
-  <!-- Lock Screen Overlay -->
-<div id="lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-family: monospace;">
-  <h2>LINKFLOW LOCKED</h2>
-  <input type="password" id="password-input" placeholder="Enter Password..." style="padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; font-family: monospace;">
-  <button id="unlock-btn" style="padding: 10px 20px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold;">UNLOCK</button>
-  <p id="lock-error" style="color: #ff5555; display: none; margin-top: 10px;">Incorrect Password</p>
+<!-- Secure Auth Overlay -->
+<div id="auth-overlay" style="position: fixed; inset: 0; background: #0d0d0d; z-index: 9999; display: flex; align-items: center; justify-content: center; font-family: monospace; color: white;">
+    
+    <div style="background: #111; border: 1px solid #333; padding: 40px; width: 100%; max-width: 400px; text-align: center;">
+        <h2 id="auth-title" style="margin-top: 0; letter-spacing: 2px;">LINKFLOW_LOCKED</h2>
+        <p id="auth-subtitle" style="color: #888; font-size: 14px; margin-bottom: 25px;">Enter your master password.</p>
+        
+        <input type="password" id="auth-input" placeholder="••••••••" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 15px; text-align: center; font-size: 16px;">
+        
+        <button id="auth-btn" style="width: 100%; padding: 12px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 14px; transition: 0.2s;">UNLOCK</button>
+        
+        <p id="auth-error" style="color: #ff5555; display: none; margin-top: 15px; font-size: 12px;"></p>
+        
+        <button id="auth-toggle-btn" style="background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; margin-top: 20px; font-family: monospace; font-size: 12px;">Forgot Password?</button>
+    </div>
 </div>
 
 <div class="stars-bg"></div>
@@ -337,56 +346,135 @@
 <script>
   let sessionPassword = "";
 
-// 1. The Unlock Logic
-document.getElementById('unlock-btn').addEventListener('click', () => {
-    const inputPass = document.getElementById('password-input').value;
-    
-    // Check if it's a first-time setup (no data exists yet)
-    if (!localStorage.getItem('linkflow_secure')) {
-        sessionPassword = inputPass;
-        saveData([]); // Initialize with empty encrypted array
-        unlockApp();
-        return;
-    }
+const authOverlay = document.getElementById('auth-overlay');
+const authTitle = document.getElementById('auth-title');
+const authSubtitle = document.getElementById('auth-subtitle');
+const authInput = document.getElementById('auth-input');
+const authBtn = document.getElementById('auth-btn');
+const authError = document.getElementById('auth-error');
+const authToggleBtn = document.getElementById('auth-toggle-btn');
 
-    // Try to decrypt existing data
-    try {
-        const encryptedData = localStorage.getItem('linkflow_secure');
-        const bytes = CryptoJS.AES.decrypt(encryptedData, inputPass);
-        const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
+let sessionPassword = "";
+
+function renderAuthUI() {
+    authInput.value = '';
+    authError.style.display = 'none';
+    
+    if (currentMode === 'setup') {
+        authTitle.innerText = 'INITIAL_SETUP';
+        authSubtitle.innerText = 'Create a secure master password.';
+        authBtn.innerText = 'SET PASSWORD';
+        authInput.placeholder = 'New Password';
+        authToggleBtn.style.display = 'none';
+    } else if (currentMode === 'login') {
+        authTitle.innerText = 'LINKFLOW_LOCKED';
+        authSubtitle.innerText = 'Enter your master password.';
+        authBtn.innerText = 'UNLOCK';
+        authInput.placeholder = '••••••••';
+        authToggleBtn.innerText = 'Forgot Password?';
+        authToggleBtn.style.display = 'inline-block';
+    } else if (currentMode === 'recovery') {
+        authTitle.innerText = 'EMERGENCY_RECOVERY';
+        authSubtitle.innerText = 'Enter your 12-character recovery phrase.';
+        authBtn.innerText = 'RECOVER PASSWORD';
+        authInput.placeholder = 'XXXX-XXXX-XXXX';
+        authToggleBtn.innerText = 'Back to Login';
+    }
+}
+
+function generateRecoveryPhrase() {
+    return Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + 
+           Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + 
+           Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
+authBtn.addEventListener('click', () => {
+    const inputVal = authInput.value;
+    if (!inputVal) return;
+
+    if (currentMode === 'setup') {
+        // 1. Setup Mode
+        const recoveryPhrase = generateRecoveryPhrase();
         
-        if (!decryptedString) throw new Error("Wrong password");
+        // Encrypt the password using the recovery phrase for emergencies
+        const vault = CryptoJS.AES.encrypt(inputVal, recoveryPhrase).toString();
+        localStorage.setItem('linkflow_vault', vault);
         
-        sessionPassword = inputPass; // Store in temporary memory only
-        unlockApp();
-        renderLinks(); // Your existing function to draw the UI
-    } catch (e) {
-        document.getElementById('lock-error').style.display = "block";
+        // Save an encrypted verification check
+        const authCheck = CryptoJS.AES.encrypt('auth-ok', inputVal).toString();
+        localStorage.setItem('linkflow_auth_check', authCheck);
+        
+        // Initialize empty secure data
+        sessionPassword = inputVal;
+        localStorage.setItem('linkflow_secure', CryptoJS.AES.encrypt('[]', sessionPassword).toString());
+        
+        // Show recovery phrase
+        authTitle.innerText = 'SAVE_THIS_PHRASE';
+        authSubtitle.innerHTML = `<span style="color: #A7F3D0; font-size: 16px;">${recoveryPhrase}</span><br><br>Write this down. It is the ONLY way to recover your password.`;
+        authInput.style.display = 'none';
+        authBtn.innerText = 'I HAVE SAVED IT, ENTER APP';
+        authBtn.onclick = () => { authOverlay.style.display = 'none'; };
+        
+    } else if (currentMode === 'login') {
+        // 2. Login Mode
+        try {
+            const check = localStorage.getItem('linkflow_auth_check');
+            const decrypted = CryptoJS.AES.decrypt(check, inputVal).toString(CryptoJS.enc.Utf8);
+            
+            if (decrypted === 'auth-ok') {
+                sessionPassword = inputVal;
+                authOverlay.style.display = 'none';
+                // Call your function to render links here: renderLinks();
+            } else {
+                throw new Error();
+            }
+        } catch {
+            authError.innerText = 'Incorrect password.';
+            authError.style.display = 'block';
+        }
+    } else if (currentMode === 'recovery') {
+        // 3. Recovery Mode
+        try {
+            const vault = localStorage.getItem('linkflow_vault');
+            const decryptedPass = CryptoJS.AES.decrypt(vault, inputVal).toString(CryptoJS.enc.Utf8);
+            
+            if (decryptedPass) {
+                authTitle.innerText = 'PASSWORD_RECOVERED';
+                authSubtitle.innerHTML = `Your master password is:<br><br><span style="color: white; font-size: 18px;">${decryptedPass}</span>`;
+                authInput.style.display = 'none';
+                authBtn.innerText = 'BACK TO LOGIN';
+                authBtn.onclick = () => { location.reload(); };
+            } else {
+                throw new Error();
+            }
+        } catch {
+            authError.innerText = 'Invalid recovery phrase.';
+            authError.style.display = 'block';
+        }
     }
 });
 
-function unlockApp() {
-    document.getElementById('lock-screen').style.display = "none";
-}
+authToggleBtn.addEventListener('click', () => {
+    currentMode = currentMode === 'login' ? 'recovery' : 'login';
+    renderAuthUI();
+});
 
-// 2. The Encrypted Save Function (Replace your old save function with this)
+// Replace old load/save functions
 function saveData(dataArray) {
-    if (!sessionPassword) return; // Prevent saving if locked
-    const jsonString = JSON.stringify(dataArray);
-    const encryptedData = CryptoJS.AES.encrypt(jsonString, sessionPassword).toString();
-    localStorage.setItem('linkflow_secure', encryptedData);
+    if (!sessionPassword) return;
+    localStorage.setItem('linkflow_secure', CryptoJS.AES.encrypt(JSON.stringify(dataArray), sessionPassword).toString());
 }
 
-// 3. The Encrypted Load Function (Replace your old load function with this)
 function loadData() {
-    if (!sessionPassword) return []; // Return empty if locked
-    const encryptedData = localStorage.getItem('linkflow_secure');
-    if (!encryptedData) return [];
-    
-    const bytes = CryptoJS.AES.decrypt(encryptedData, sessionPassword);
-    const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
-    return JSON.parse(decryptedString);
+    if (!sessionPassword) return [];
+    try {
+        const encrypted = localStorage.getItem('linkflow_secure');
+        return JSON.parse(CryptoJS.AES.decrypt(encrypted, sessionPassword).toString(CryptoJS.enc.Utf8));
+    } catch { return []; }
 }
+
+renderAuthUI();
 (function(){
   var STORAGE_KEY = 'linkflow_data_v1';
   var uid = function(){ return Math.random().toString(36).slice(2,10); };
