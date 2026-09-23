@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ISMAILBUILDS — LINKFLOW</title>
@@ -254,6 +254,13 @@
 </style>
 </head>
 <body>
+  <!-- Lock Screen Overlay -->
+<div id="lock-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-family: monospace;">
+  <h2>LINKFLOW LOCKED</h2>
+  <input type="password" id="password-input" placeholder="Enter Password..." style="padding: 10px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; font-family: monospace;">
+  <button id="unlock-btn" style="padding: 10px 20px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold;">UNLOCK</button>
+  <p id="lock-error" style="color: #ff5555; display: none; margin-top: 10px;">Incorrect Password</p>
+</div>
 
 <div class="stars-bg"></div>
 <div class="dither left"></div>
@@ -328,6 +335,58 @@
 </div>
 
 <script>
+  let sessionPassword = "";
+
+// 1. The Unlock Logic
+document.getElementById('unlock-btn').addEventListener('click', () => {
+    const inputPass = document.getElementById('password-input').value;
+    
+    // Check if it's a first-time setup (no data exists yet)
+    if (!localStorage.getItem('linkflow_secure')) {
+        sessionPassword = inputPass;
+        saveData([]); // Initialize with empty encrypted array
+        unlockApp();
+        return;
+    }
+
+    // Try to decrypt existing data
+    try {
+        const encryptedData = localStorage.getItem('linkflow_secure');
+        const bytes = CryptoJS.AES.decrypt(encryptedData, inputPass);
+        const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedString) throw new Error("Wrong password");
+        
+        sessionPassword = inputPass; // Store in temporary memory only
+        unlockApp();
+        renderLinks(); // Your existing function to draw the UI
+    } catch (e) {
+        document.getElementById('lock-error').style.display = "block";
+    }
+});
+
+function unlockApp() {
+    document.getElementById('lock-screen').style.display = "none";
+}
+
+// 2. The Encrypted Save Function (Replace your old save function with this)
+function saveData(dataArray) {
+    if (!sessionPassword) return; // Prevent saving if locked
+    const jsonString = JSON.stringify(dataArray);
+    const encryptedData = CryptoJS.AES.encrypt(jsonString, sessionPassword).toString();
+    localStorage.setItem('linkflow_secure', encryptedData);
+}
+
+// 3. The Encrypted Load Function (Replace your old load function with this)
+function loadData() {
+    if (!sessionPassword) return []; // Return empty if locked
+    const encryptedData = localStorage.getItem('linkflow_secure');
+    if (!encryptedData) return [];
+    
+    const bytes = CryptoJS.AES.decrypt(encryptedData, sessionPassword);
+    const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+    return JSON.parse(decryptedString);
+}
 (function(){
   var STORAGE_KEY = 'linkflow_data_v1';
   var uid = function(){ return Math.random().toString(36).slice(2,10); };
