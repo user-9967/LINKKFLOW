@@ -204,12 +204,13 @@
       <span class="divider"></span>
       <a href="https://www.instagram.com/ismailbuilts?stkn=MXV3bGh2OGl1amQzdQ==" target="_blank" class="byline">ISMAIL SHAH</a>
     </div>
-    <div class="stats">
+  <div class="stats">
       <span id="stat-sections">0 SECTIONS</span>
       <span class="dot"></span>
       <span id="stat-links">0 LINKS</span>
       <span class="dot"></span>
       <button class="icon-btn" id="btn-theme" title="Toggle Theme" style="font-size:11px;">◐</button>
+      <button class="icon-btn" id="btn-lock" title="Lock App" style="font-size:12px;">🔒</button>
     </div>
   </header>
 
@@ -257,10 +258,12 @@
     </div>
   </div>
 </div>
+  
 
 <script>
 // --- 1. SECURITY & AUTHENTICATION VARIABLES ---
-let sessionPassword = "";
+// Pull password from session memory so refreshes don't lock you out
+let sessionPassword = sessionStorage.getItem('linkflow_session') || "";
 let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
 let state = { categories: [] };
 let searchQuery = '';
@@ -354,6 +357,7 @@ function handleAuthSubmit() {
     localStorage.setItem('linkflow_token', token);
 
     sessionPassword = val;
+    sessionStorage.setItem('linkflow_session', val); // Save to session memory
     if (!localStorage.getItem('linkflow_secure')) {
       saveEncryptedState();
     }
@@ -371,6 +375,7 @@ function handleAuthSubmit() {
       const bytes = CryptoJS.AES.decrypt(storedToken, val);
       if (bytes.toString(CryptoJS.enc.Utf8) === 'auth-ok') {
         sessionPassword = val;
+        sessionStorage.setItem('linkflow_session', val); // Save to session memory
         authOverlay.style.display = 'none';
         startApp();
       } else throw new Error();
@@ -379,7 +384,6 @@ function handleAuthSubmit() {
     }
   } else if (currentMode === 'recovery') {
     try {
-      // Auto-format user input to uppercase to prevent case-sensitive errors
       const formattedKey = val.toUpperCase();
       const vault = localStorage.getItem('linkflow_vault');
       const recoveredPass = CryptoJS.AES.decrypt(vault, formattedKey).toString(CryptoJS.enc.Utf8);
@@ -544,6 +548,13 @@ function render(){
   document.getElementById('stat-links').textContent = totalLinks + (totalLinks === 1 ? ' LINK' : ' LINKS');
 }
 
+// Lock Button Event
+document.getElementById('btn-lock').addEventListener('click', function(){
+  sessionStorage.removeItem('linkflow_session');
+  sessionPassword = "";
+  location.reload();
+});
+
 document.getElementById('search-input').addEventListener('input', function(e){
   searchQuery = e.target.value.toLowerCase().trim();
   render();
@@ -617,8 +628,13 @@ function startApp() {
   render();
 }
 
-// Boot up the Auth UI first
-updateAuthView();
+// Bypass login screen if session is already active
+if (sessionPassword) {
+  authOverlay.style.display = 'none';
+  startApp();
+} else {
+  updateAuthView();
+}
 </script>
 </body>
 </html>
