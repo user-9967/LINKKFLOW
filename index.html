@@ -167,10 +167,10 @@
     .search-bar::placeholder { color: var(--fg-50); }
     main.content{ flex:1; padding:0 28px 60px; max-width:1100px; margin:0 auto; width:100%; }
     .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--gap); }
-    .card { 
+   .card { 
       border: 1px solid var(--fg-30); 
       background: rgba(255,255,255,.03); 
-      border-radius: 8px;
+      border-radius: 0;
       display: flex; 
       flex-direction: column; 
       min-height: 220px; 
@@ -209,14 +209,14 @@
     .empty { padding: 24px 20px; font-size: 11.5px; color: var(--fg-50); letter-spacing: .05em; text-align: center; }
     
     .add-link-form { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--fg-15); background: rgba(0,0,0,.2); }
-    .add-link-form input { background: transparent; border: 1px solid var(--fg-30); color: var(--fg); font-family: var(--mono); font-size: 12px; padding: 10px 12px; min-width: 0; border-radius: 4px; }
+    .add-link-form input { background: transparent; border: 1px solid var(--fg-30); color: var(--fg); font-family: var(--mono); font-size: 12px; padding: 10px 12px; min-width: 0; border-radius: 0; }
     .add-link-form input::placeholder { color: var(--fg-50); }
     .add-link-form input.name { flex: 0 0 32%; }
     .add-link-form input.url { flex: 1; }
-    .add-link-form button { background: var(--fg-15); border: 1px solid var(--fg-30); color: var(--fg); font-size: 16px; padding: 0 14px; flex-shrink: 0; border-radius: 4px; transition: all 0.2s ease; }
+    .add-link-form button { background: var(--fg-15); border: 1px solid var(--fg-30); color: var(--fg); font-size: 16px; padding: 0 14px; flex-shrink: 0; border-radius: 0; transition: all 0.2s ease; }
     .add-link-form button:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
     
-    .new-card { border: 1px dashed var(--fg-30); display: flex; align-items: center; justify-content: center; min-height: 220px; color: var(--fg-50); font-size: 13px; letter-spacing: .1em; font-weight: 700; background: none; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; }
+    .new-card { border: 1px dashed var(--fg-30); display: flex; align-items: center; justify-content: center; min-height: 220px; color: var(--fg-50); font-size: 13px; letter-spacing: .1em; font-weight: 700; background: none; cursor: pointer; border-radius: 0; transition: all 0.2s ease; }
     .new-card:hover { border-color: var(--fg); color: var(--fg); background: var(--fg-15); transform: translateY(-2px); }
     footer.status{ border-top:1px solid var(--fg-15); padding:12px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:10px; letter-spacing:.1em; color:var(--fg-50); }
     .footer-links { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
