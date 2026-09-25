@@ -223,6 +223,7 @@
     
     <div id="auth-input-container">
       <input type="password" id="auth-input" placeholder="••••••••" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 15px;">
+      <input type="text" id="auth-hint-input" placeholder="Secret Recovery Word (e.g. childhood pet)" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 13px; display: none;">
     </div>
     
     <button id="auth-btn" style="width: 100%; padding: 12px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 13px;">UNLOCK</button>
@@ -354,16 +355,20 @@ function saveEncryptedState() {
 }
 
 // --- 3. AUTHENTICATION LOGIC ---
+const authHintInput = document.getElementById('auth-hint-input');
+
 function updateAuthView() {
   authError.style.display = 'none';
   authInput.value = '';
+  if(authHintInput) authHintInput.value = '';
   authInputContainer.style.display = 'block';
 
   if (currentMode === 'setup') {
     authTitle.innerText = 'INITIAL_SETUP';
-    authSubtitle.innerText = 'Create a master password for LinkFlow.';
+    authSubtitle.innerText = 'Create a password & custom recovery phrase.';
     authInput.type = 'password';
     authInput.placeholder = 'Create Master Password';
+    authHintInput.style.display = 'block';
     authBtn.innerText = 'SET PASSWORD';
     authToggleBtn.style.display = 'none';
   } else if (currentMode === 'login') {
@@ -371,14 +376,16 @@ function updateAuthView() {
     authSubtitle.innerText = 'Enter your master password.';
     authInput.type = 'password';
     authInput.placeholder = '••••••••';
+    authHintInput.style.display = 'none';
     authBtn.innerText = 'UNLOCK';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Forgot Password?';
   } else if (currentMode === 'recovery') {
     authTitle.innerText = 'EMERGENCY_RECOVERY';
-    authSubtitle.innerText = 'Enter your 12-digit recovery phrase.';
+    authSubtitle.innerText = 'Enter your custom recovery phrase.';
     authInput.type = 'text';
-    authInput.placeholder = 'XXXX-XXXX-XXXX';
+    authInput.placeholder = 'Your Secret Recovery Phrase';
+    authHintInput.style.display = 'none';
     authBtn.innerText = 'RECOVER PASSWORD';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Back to Login';
@@ -388,57 +395,78 @@ function updateAuthView() {
 function handleAuthSubmit() {
   const val = authInput.value.trim();
 
-  if (currentMode === 'setup_complete') {
-    authOverlay.style.display = 'none';
-    startApp();
-    return;
-  }
-
   if (!val) {
     showError("Input cannot be empty.");
     return;
   }
 
   if (currentMode === 'setup') {
-    const phrase = Array.from({ length: 3 }, () => Math.random().toString(36).substring(2, 6).toUpperCase()).join('-');
-    const vault = CryptoJS.AES.encrypt(val, phrase).toString();
+    const hintVal = authHintInput.value.trim().toLowerCase();
+    if (!hintVal) {
+      showError("You must enter a recovery phrase.");
+      return;
+    }
+    
+    const vault = CryptoJS.AES.encrypt(val, hintVal).toString();
     localStorage.setItem('linkflow_vault', vault);
     const token = CryptoJS.AES.encrypt('auth-ok', val).toString();
     localStorage.setItem('linkflow_token', token);
 
+    // Initialize the failed attempts counter
+    localStorage.setItem('linkflow_failed_attempts', '0');
+
     sessionPassword = val;
-    sessionStorage.setItem('linkflow_session', val); // Save to session memory
+    sessionStorage.setItem('linkflow_session', val); 
     if (!localStorage.getItem('linkflow_secure')) {
       saveEncryptedState();
     }
 
-    currentMode = 'setup_complete';
-    authTitle.innerText = 'SAVE_RECOVERY_KEY';
-    authSubtitle.innerHTML = `<span style="color: #22c55e; font-size: 15px; font-weight: bold;">${phrase}</span><br><br><span style="color:#aaa;">Write this key down. It is the ONLY way to recover your data.</span>`;
-    authInputContainer.style.display = 'none';
-    authBtn.innerText = 'I HAVE SAVED IT, OPEN APP';
+    authOverlay.style.display = 'none';
+    startApp();
     
   } else if (currentMode === 'login') {
     try {
       const storedToken = localStorage.getItem('linkflow_token');
       if (!storedToken) throw new Error("No token");
       const bytes = CryptoJS.AES.decrypt(storedToken, val);
+      
       if (bytes.toString(CryptoJS.enc.Utf8) === 'auth-ok') {
+        // --- SUCCESSFUL LOGIN: Check for Intruders ---
+        const failedAttempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
+        if (failedAttempts > 0) {
+          alert(`⚠️ SECURITY ALERT: There have been ${failedAttempts} failed login attempts since your last successful login.`);
+          localStorage.setItem('linkflow_failed_attempts', '0'); // Reset counter
+        }
+
         sessionPassword = val;
-        sessionStorage.setItem('linkflow_session', val); // Save to session memory
+        sessionStorage.setItem('linkflow_session', val); 
         authOverlay.style.display = 'none';
         startApp();
       } else throw new Error();
     } catch {
+      // --- FAILED LOGIN: Silently count the attempt ---
+      let attempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
+      localStorage.setItem('linkflow_failed_attempts', attempts + 1);
+      
       showError("Incorrect password.");
     }
+    
   } else if (currentMode === 'recovery') {
     try {
-      const formattedKey = val.toUpperCase();
       const vault = localStorage.getItem('linkflow_vault');
-      const recoveredPass = CryptoJS.AES.decrypt(vault, formattedKey).toString(CryptoJS.enc.Utf8);
+      let recoveredPass = CryptoJS.AES.decrypt(vault, val.toLowerCase()).toString(CryptoJS.enc.Utf8);
+      if (!recoveredPass) {
+         recoveredPass = CryptoJS.AES.decrypt(vault, val.toUpperCase()).toString(CryptoJS.enc.Utf8);
+      }
       
       if (recoveredPass) {
+        // --- SUCCESSFUL RECOVERY: Check for Intruders ---
+        const failedAttempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
+        if (failedAttempts > 0) {
+          alert(`⚠️ SECURITY ALERT: There were ${failedAttempts} failed attempts to guess your password or recovery phrase.`);
+          localStorage.setItem('linkflow_failed_attempts', '0'); // Reset counter
+        }
+
         authTitle.innerText = 'PASSWORD_RECOVERED';
         authSubtitle.innerHTML = `Your master password is:<br><br><strong style="color: #fff; font-size: 16px;">${recoveredPass}</strong>`;
         authInputContainer.style.display = 'none';
@@ -447,7 +475,11 @@ function handleAuthSubmit() {
         authBtn.onclick = () => location.reload();
       } else throw new Error();
     } catch {
-      showError("Invalid recovery key. Check hyphens.");
+      // --- FAILED RECOVERY: Silently count the attempt ---
+      let attempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
+      localStorage.setItem('linkflow_failed_attempts', attempts + 1);
+      
+      showError("Incorrect recovery phrase.");
     }
   }
 }
@@ -459,11 +491,11 @@ function showError(msg) {
 
 authBtn.addEventListener('click', handleAuthSubmit);
 authInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
+authHintInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
 authToggleBtn.addEventListener('click', () => {
   currentMode = (currentMode === 'login') ? 'recovery' : 'login';
   updateAuthView();
 });
-
 // --- 4. MAIN APP LOGIC (ONLY RUNS AFTER UNLOCK) ---
 var uid = function(){ return Math.random().toString(36).slice(2,10); };
 function normalizeUrl(u){
