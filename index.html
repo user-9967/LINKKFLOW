@@ -255,7 +255,6 @@
 
 <script>
 // --- 1. SECURITY & AUTHENTICATION VARIABLES ---
-// Pull password from session memory so refreshes don't lock you out
 let sessionPassword = sessionStorage.getItem('linkflow_session') || "";
 let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
 let state = { categories: [] };
@@ -269,6 +268,8 @@ const authInputContainer = document.getElementById('auth-input-container');
 const authBtn = document.getElementById('auth-btn');
 const authError = document.getElementById('auth-error');
 const authToggleBtn = document.getElementById('auth-toggle-btn');
+const authHintInput = document.getElementById('auth-hint-input');
+const authTipInput = document.getElementById('auth-tip-input');
 
 // --- 2. ENCRYPTED STORAGE HELPERS ---
 function loadEncryptedState() {
@@ -297,9 +298,6 @@ function saveEncryptedState() {
 }
 
 // --- 3. AUTHENTICATION LOGIC ---
-const authHintInput = document.getElementById('auth-hint-input');
-const authTipInput = document.getElementById('auth-tip-input');
-
 function updateAuthView() {
   authError.style.display = 'none';
   authInput.value = '';
@@ -312,8 +310,8 @@ function updateAuthView() {
     authSubtitle.innerText = 'Create a password & custom recovery phrase.';
     authInput.type = 'password';
     authInput.placeholder = 'Create Master Password';
-    authHintInput.style.display = 'block';
-    authTipInput.style.display = 'block';
+    if(authHintInput) authHintInput.style.display = 'block';
+    if(authTipInput) authTipInput.style.display = 'block';
     authBtn.innerText = 'SET PASSWORD';
     authToggleBtn.style.display = 'none';
   } else if (currentMode === 'login') {
@@ -321,8 +319,8 @@ function updateAuthView() {
     authSubtitle.innerText = 'Enter your master password.';
     authInput.type = 'password';
     authInput.placeholder = '••••••••';
-    authHintInput.style.display = 'none';
-    authTipInput.style.display = 'none';
+    if(authHintInput) authHintInput.style.display = 'none';
+    if(authTipInput) authTipInput.style.display = 'none';
     authBtn.innerText = 'UNLOCK';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Forgot Password?';
@@ -331,8 +329,8 @@ function updateAuthView() {
     authSubtitle.innerText = 'Enter your secret recovery phrase.';
     authInput.type = 'password';
     authInput.placeholder = 'Your Secret Recovery Phrase';
-    authHintInput.style.display = 'none';
-    authTipInput.style.display = 'none';
+    if(authHintInput) authHintInput.style.display = 'none';
+    if(authTipInput) authTipInput.style.display = 'none';
     authBtn.innerText = 'RECOVER PASSWORD';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Back to Login';
@@ -348,21 +346,19 @@ function handleAuthSubmit() {
   }
 
   if (currentMode === 'setup') {
-    const hintVal = authHintInput.value.trim().toLowerCase();
-    const tipVal = authTipInput.value.trim();
+    const hintVal = authHintInput ? authHintInput.value.trim().toLowerCase() : '';
+    const tipVal = authTipInput ? authTipInput.value.trim() : '';
     
     if (!hintVal || !tipVal) {
       showError("You must enter both a recovery phrase and a hint.");
       return;
     }
     
-    // Encrypt and save vault
     const vault = CryptoJS.AES.encrypt(val, hintVal).toString();
     localStorage.setItem('linkflow_vault', vault);
     const token = CryptoJS.AES.encrypt('auth-ok', val).toString();
     localStorage.setItem('linkflow_token', token);
     
-    // Save the public hint & initialize intruder counter
     localStorage.setItem('linkflow_tip', tipVal); 
     localStorage.setItem('linkflow_failed_attempts', '0');
 
@@ -426,7 +422,6 @@ function handleAuthSubmit() {
       let attempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
       localStorage.setItem('linkflow_failed_attempts', attempts + 1);
       
-      // Pull the hint and show it on failure
       const savedTip = localStorage.getItem('linkflow_tip');
       if (savedTip) {
         showError(`Incorrect. Hint: ${savedTip}`);
