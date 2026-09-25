@@ -377,7 +377,20 @@ body.theme-light .card { background: var(--bg); box-shadow: none; }    *{ box-si
 // --- 1. SECURITY & AUTHENTICATION VARIABLES ---
 let sessionPassword = sessionStorage.getItem('linkflow_session') || "";
 let currentMode = localStorage.getItem('linkflow_vault') ? 'login' : 'setup';
-let state = { categories: [] };
+
+// The default "Starter Pack" for brand new users
+let state = { 
+  categories: [
+    {
+      id: 'default-socials',
+      name: 'SOCIAL LINKS',
+      links: [
+        { id: 'default-ig', name: 'Instagram', url: 'https://instagram.com/ismailbuilts' },
+        { id: 'default-li', name: 'LinkedIn', url: 'https://linkedin.com/in/IsmailShah' }
+      ]
+    }
+  ] 
+};
 let searchQuery = '';
 
 const authOverlay = document.getElementById('auth-overlay');
@@ -393,17 +406,17 @@ const authTipInput = document.getElementById('auth-tip-input');
 
 // --- 2. ENCRYPTED STORAGE HELPERS ---
 function loadEncryptedState() {
-  if (!sessionPassword) return { categories: [] };
+  if (!sessionPassword) return state; // Load starter pack if no password
   try {
     const encrypted = localStorage.getItem('linkflow_secure');
-    if (!encrypted) return { categories: [] };
+    if (!encrypted) return state; // Load starter pack if no saved data exists
     const bytes = CryptoJS.AES.decrypt(encrypted, sessionPassword);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     const parsed = JSON.parse(decrypted);
-    return (parsed && Array.isArray(parsed.categories)) ? parsed : { categories: [] };
+    return (parsed && Array.isArray(parsed.categories)) ? parsed : state;
   } catch (err) {
     console.error('Decryption failed', err);
-    return { categories: [] };
+    return state; // Load starter pack on failure
   }
 }
 
