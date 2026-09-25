@@ -223,7 +223,10 @@
     
     <div id="auth-input-container">
       <input type="password" id="auth-input" placeholder="••••••••" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 15px;">
-      <input type="text" id="auth-hint-input" placeholder="Secret Recovery Word (e.g. childhood pet)" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 13px; display: none;">
+      
+      <input type="password" id="auth-hint-input" placeholder="Secret Phrase (e.g. fluffy)" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 13px; display: none;">
+      
+      <input type="text" id="auth-tip-input" placeholder="Your Hint (e.g. My first pet)" style="width: 100%; box-sizing: border-box; padding: 12px; background: #000; border: 1px solid #444; color: white; font-family: monospace; outline: none; margin-bottom: 12px; text-align: center; font-size: 13px; display: none;">
     </div>
     
     <button id="auth-btn" style="width: 100%; padding: 12px; background: white; color: black; border: none; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 13px;">UNLOCK</button>
@@ -234,67 +237,6 @@
       <button id="auth-toggle-btn" type="button" style="background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-family: monospace; font-size: 11px;">Forgot Password?</button>
     </div>
   </div>
-</div>
-
-<div class="stars-bg"></div>
-<div class="dither left"></div>
-<div class="dither right"></div>
-<div class="corner tl"></div>
-<div class="corner tr"></div>
-<div class="corner bl"></div>
-<div class="corner br"></div>
-
-<div class="shell">
-  <header class="topbar">
-    <div class="brand">
-      <span class="wordmark">LINKFLOW</span>
-      <span class="divider"></span>
-      <a href="https://www.instagram.com/ismailbuilts?stkn=MXV3bGh2OGl1amQzdQ==" target="_blank" class="byline">ISMAIL SHAH</a>
-    </div>
-  <div class="stats">
-      <span id="stat-sections">0 SECTIONS</span>
-      <span class="dot"></span>
-      <span id="stat-links">0 LINKS</span>
-      <span class="dot"></span>
-      <button class="icon-btn" id="btn-theme" title="Toggle Theme" style="display:flex; align-items:center; padding: 4px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor"></path></svg>
-      </button>
-      <button class="icon-btn" id="btn-lock" title="Lock App" style="display:flex; align-items:center; padding: 4px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-      </button>
-    </div>
-  </header>
-
-  <section class="hero">
-    <div class="eyebrow">
-      <span class="line"></span>
-      <span>OPEN SOURCE ARCHIVE</span>
-      <span class="line grow"></span>
-    </div>
-    <h1 class="title">Every link you need, <em>sorted and within reach.</em></h1>
-    <p class="sub">Study material, dev tools, projects and the fun stuff — organised into sections instead of buried in fifty browser tabs. Saved right in this browser.</p>
-    
-    <div class="hero-actions">
-      <button class="btn" id="btn-add-section">+ NEW SECTION</button>
-      <input type="text" id="search-input" class="search-bar" placeholder="Search links..." />
-      <button class="btn ghost" id="btn-export">Export JSON</button>
-      <label class="btn ghost" style="cursor:pointer;">
-        Import JSON <input type="file" id="file-import" accept=".json" style="display:none;">
-      </label>
-    </div>
-  </section>
-
-  <main class="content">
-    <div class="grid" id="grid"></div>
-  </main>
-
-  <footer class="status">
-    <div>LINKFLOW · V2.0.0 · LOCAL STORAGE</div>
-    <div class="pulse">
-      <span>SAVED</span>
-      <i></i><i></i><i></i>
-    </div>
-  </footer>
 </div>
 
 <!-- Add section modal -->
@@ -356,11 +298,13 @@ function saveEncryptedState() {
 
 // --- 3. AUTHENTICATION LOGIC ---
 const authHintInput = document.getElementById('auth-hint-input');
+const authTipInput = document.getElementById('auth-tip-input');
 
 function updateAuthView() {
   authError.style.display = 'none';
   authInput.value = '';
   if(authHintInput) authHintInput.value = '';
+  if(authTipInput) authTipInput.value = '';
   authInputContainer.style.display = 'block';
 
   if (currentMode === 'setup') {
@@ -369,6 +313,7 @@ function updateAuthView() {
     authInput.type = 'password';
     authInput.placeholder = 'Create Master Password';
     authHintInput.style.display = 'block';
+    authTipInput.style.display = 'block';
     authBtn.innerText = 'SET PASSWORD';
     authToggleBtn.style.display = 'none';
   } else if (currentMode === 'login') {
@@ -377,15 +322,17 @@ function updateAuthView() {
     authInput.type = 'password';
     authInput.placeholder = '••••••••';
     authHintInput.style.display = 'none';
+    authTipInput.style.display = 'none';
     authBtn.innerText = 'UNLOCK';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Forgot Password?';
   } else if (currentMode === 'recovery') {
     authTitle.innerText = 'EMERGENCY_RECOVERY';
-    authSubtitle.innerText = 'Enter your custom recovery phrase.';
-    authInput.type = 'text';
+    authSubtitle.innerText = 'Enter your secret recovery phrase.';
+    authInput.type = 'password';
     authInput.placeholder = 'Your Secret Recovery Phrase';
     authHintInput.style.display = 'none';
+    authTipInput.style.display = 'none';
     authBtn.innerText = 'RECOVER PASSWORD';
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Back to Login';
@@ -402,17 +349,21 @@ function handleAuthSubmit() {
 
   if (currentMode === 'setup') {
     const hintVal = authHintInput.value.trim().toLowerCase();
-    if (!hintVal) {
-      showError("You must enter a recovery phrase.");
+    const tipVal = authTipInput.value.trim();
+    
+    if (!hintVal || !tipVal) {
+      showError("You must enter both a recovery phrase and a hint.");
       return;
     }
     
+    // Encrypt and save vault
     const vault = CryptoJS.AES.encrypt(val, hintVal).toString();
     localStorage.setItem('linkflow_vault', vault);
     const token = CryptoJS.AES.encrypt('auth-ok', val).toString();
     localStorage.setItem('linkflow_token', token);
-
-    // Initialize the failed attempts counter
+    
+    // Save the public hint & initialize intruder counter
+    localStorage.setItem('linkflow_tip', tipVal); 
     localStorage.setItem('linkflow_failed_attempts', '0');
 
     sessionPassword = val;
@@ -431,11 +382,10 @@ function handleAuthSubmit() {
       const bytes = CryptoJS.AES.decrypt(storedToken, val);
       
       if (bytes.toString(CryptoJS.enc.Utf8) === 'auth-ok') {
-        // --- SUCCESSFUL LOGIN: Check for Intruders ---
         const failedAttempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
         if (failedAttempts > 0) {
           alert(`⚠️ SECURITY ALERT: There have been ${failedAttempts} failed login attempts since your last successful login.`);
-          localStorage.setItem('linkflow_failed_attempts', '0'); // Reset counter
+          localStorage.setItem('linkflow_failed_attempts', '0');
         }
 
         sessionPassword = val;
@@ -444,7 +394,6 @@ function handleAuthSubmit() {
         startApp();
       } else throw new Error();
     } catch {
-      // --- FAILED LOGIN: Silently count the attempt ---
       let attempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
       localStorage.setItem('linkflow_failed_attempts', attempts + 1);
       
@@ -460,11 +409,10 @@ function handleAuthSubmit() {
       }
       
       if (recoveredPass) {
-        // --- SUCCESSFUL RECOVERY: Check for Intruders ---
         const failedAttempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
         if (failedAttempts > 0) {
           alert(`⚠️ SECURITY ALERT: There were ${failedAttempts} failed attempts to guess your password or recovery phrase.`);
-          localStorage.setItem('linkflow_failed_attempts', '0'); // Reset counter
+          localStorage.setItem('linkflow_failed_attempts', '0');
         }
 
         authTitle.innerText = 'PASSWORD_RECOVERED';
@@ -475,11 +423,16 @@ function handleAuthSubmit() {
         authBtn.onclick = () => location.reload();
       } else throw new Error();
     } catch {
-      // --- FAILED RECOVERY: Silently count the attempt ---
       let attempts = parseInt(localStorage.getItem('linkflow_failed_attempts') || '0', 10);
       localStorage.setItem('linkflow_failed_attempts', attempts + 1);
       
-      showError("Incorrect recovery phrase.");
+      // Pull the hint and show it on failure
+      const savedTip = localStorage.getItem('linkflow_tip');
+      if (savedTip) {
+        showError(`Incorrect. Hint: ${savedTip}`);
+      } else {
+        showError("Incorrect recovery phrase.");
+      }
     }
   }
 }
@@ -491,7 +444,8 @@ function showError(msg) {
 
 authBtn.addEventListener('click', handleAuthSubmit);
 authInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
-authHintInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
+if(authHintInput) authHintInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
+if(authTipInput) authTipInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
 authToggleBtn.addEventListener('click', () => {
   currentMode = (currentMode === 'login') ? 'recovery' : 'login';
   updateAuthView();
