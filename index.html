@@ -196,6 +196,10 @@
     .new-card{ border:1px dashed var(--fg-30); display:flex; align-items:center; justify-content:center; min-height:180px; color:var(--fg-50); font-size:12px; letter-spacing:.08em; background:none; cursor:pointer; }
     .new-card:hover{ border-color:var(--fg); color:var(--fg); background:var(--fg-15); }
     footer.status{ border-top:1px solid var(--fg-15); padding:12px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:9.5px; letter-spacing:.1em; color:var(--fg-50); }
+    .footer-links { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .footer-links a { color:var(--fg-50); text-decoration:none; transition:color 0.2s ease; }
+    .footer-links a:hover { color:var(--fg); }
+    .footer-links span.divider { opacity: 0.3; }
     .pulse{ display:flex; gap:4px; align-items:center; }
     .pulse i{ width:4px; height:4px; border-radius:50%; background:var(--fg-30); animation:blink 1.4s infinite ease-in-out; }
     .pulse i:nth-child(2){ animation-delay:.2s; }
