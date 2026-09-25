@@ -207,13 +207,21 @@ body.theme-light .card { background: var(--bg); box-shadow: none; }    *{ box-si
     
     .empty { padding: 24px 20px; font-size: 11.5px; color: var(--fg-50); letter-spacing: .05em; text-align: center; }
     
-    .add-link-form { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--fg-15); background: transparent; }
-    .add-link-form input { background: transparent; border: 1px solid var(--fg-30); color: var(--fg); font-family: var(--mono); font-size: 12px; padding: 10px 12px; min-width: 0; border-radius: 0; }
+    /* Pure E-Ink Form (Dark Mode Default) */
+    .add-link-form { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--fg-15); background: #0a0a0a; }
+    .add-link-form input { background: #000000; border: 1px solid var(--fg-30); color: var(--fg); font-family: var(--mono); font-size: 12px; padding: 10px 12px; min-width: 0; border-radius: 0; }
     .add-link-form input::placeholder { color: var(--fg-50); }
     .add-link-form input.name { flex: 0 0 32%; }
     .add-link-form input.url { flex: 1; }
-    .add-link-form button { background: transparent; border: 1px solid var(--fg-30); color: var(--fg); font-size: 16px; padding: 0 14px; flex-shrink: 0; border-radius: 0; transition: all 0.2s ease; }
+    .add-link-form button { background: #1a1a1a; border: 1px solid var(--fg-30); color: var(--fg); font-size: 16px; padding: 0 14px; flex-shrink: 0; border-radius: 0; transition: all 0.15s ease; }
     .add-link-form button:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    
+    /* Pure E-Ink Form (Light Mode Override) */
+    body.theme-light .add-link-form { background: #e5e5e5; border-top: 1px solid #d4d4d8; }
+    body.theme-light .add-link-form input { background: #ffffff; border-color: #a1a1aa; color: #000000; }
+    body.theme-light .add-link-form input::placeholder { color: #71717a; }
+    body.theme-light .add-link-form button { background: #f4f4f5; border-color: #a1a1aa; color: #000000; }
+    body.theme-light .add-link-form button:hover { background: #000000; color: #ffffff; border-color: #000000; }
     
     .new-card { border: 1px dashed var(--fg-30); display: flex; align-items: center; justify-content: center; min-height: 220px; color: var(--fg-50); font-size: 13px; letter-spacing: .1em; font-weight: 700; background: transparent; cursor: pointer; border-radius: 0; transition: all 0.2s ease; }
     .new-card:hover { border-color: var(--fg); color: var(--fg); background: var(--fg-15); transform: translateY(-2px); }
