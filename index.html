@@ -394,6 +394,9 @@ function updateAuthView() {
     authToggleBtn.style.display = 'inline-block';
     authToggleBtn.innerText = 'Back to Login';
   }
+
+  // Auto-focus the input box so the user can type immediately
+  setTimeout(function() { authInput.focus(); }, 50);
 }
 
 function handleAuthSubmit() {
