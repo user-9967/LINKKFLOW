@@ -503,6 +503,17 @@ authBtn.addEventListener('click', handleAuthSubmit);
 authInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
 if(authHintInput) authHintInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
 if(authTipInput) authTipInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAuthSubmit(); });
+  // Magic Auto-Unlock (Zero-Click Login)
+authInput.addEventListener('input', () => {
+  if (currentMode !== 'login') return;
+  try {
+    const token = localStorage.getItem('linkflow_token');
+    const bytes = CryptoJS.AES.decrypt(token, authInput.value.trim());
+    if (bytes.toString(CryptoJS.enc.Utf8) === 'auth-ok') {
+      handleAuthSubmit(); // Log in instantly the millisecond it's correct!
+    }
+  } catch (err) {} // Silently ignore errors while they are still typing
+});
 authToggleBtn.addEventListener('click', () => {
   currentMode = (currentMode === 'login') ? 'recovery' : 'login';
   updateAuthView();
